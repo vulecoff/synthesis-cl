@@ -1,8 +1,3 @@
-(: noreduce-eq (-> Atom Atom Bool))
-(= (noreduce-eq $x $y)
-    (== (quote $x) (quote $y))
-)
-
 (: length-atom (-> Expression Number))
 (= (length-atom $expr) 
     (if (noreduce-eq $expr ())
@@ -13,6 +8,7 @@
     )
 )
 
+;; take O(n), caution when use
 (: append-atom (-> Expression Atom Expression))
 (= (append-atom $expr $a) 
     (if (noreduce-eq $expr ())
@@ -63,7 +59,6 @@
     )
 )
 
-
 ;; FIXME: scopeless implementation of lambda
 (: lambda (-> Atom $t (-> $a $t)))
 (= ((lambda $var $body) $arg)
@@ -79,7 +74,7 @@
 ; )
 
 
-(: print-lines! (-> Express (->)))
+(: print-lines! (-> Expression (->)))
 (= (print-lines! $ls) 
    (if (== (quote $ls) (quote ()))
     ()
@@ -91,11 +86,73 @@
    )
 )
 
+;; TODO: strongly-typed list of numbers
+;; left-inclusive, right-exclusive (start, end]
+(: arange (-> Number Number Number Expression))
+(= (arange $start $end $step) 
+    (arange-helper $start $end $step ())
+)
+(: arange-helper (-> Number Number Number Expression Expression))
+(= (arange-helper $start $end $step $acc)
+    (if (< $start $end)
+        (let* (
+          ($next (+ $start $step))
+          ($acc-new (cons-atom $start $acc)) )     
+          (arange-helper $next $end $step $acc-new)
+        )
+        (reverse-atom $acc)
+    )
+)
 
+(: arange (-> Number Number Expression))
+(= (arange $start $end)
+    (arange $start $end 1)
+)
+
+(: string-concat (-> String String String))
 (= (string-concat $a $b) 
     (let* (
         ($chars-a (stringToChars $a))
         ($chars-b (stringToChars $b))
         ($chars-ab (extend-atom $chars-a $chars-b))
     ) (charsToString $chars-ab))
+)
+
+;; TODO: strongly typed list of strings?
+
+;; how to avoid accidental reduction when building atom?
+
+;; make-curry up to min-args max-args
+;; (K ...) 
+(: make-var (-> Number String))
+(= (make-var $id)
+    (parse (string-concat "$" (repr $id)))
+)
+
+(: make-func (-> Symbol Number Expression))
+(= (make-func $functor $arity)
+    (make-func-helper $functor $arity ())
+)
+
+(: make-func-helper (-> Symbol Number Expression Expression))
+(= (make-func-helper $functor $arity-left $accum)
+    (if (== $arity-left 0)
+        (cons-atom $functor $accum)
+        (let $accum-new (cons-atom (make-var $arity-left) $accum) ;; TODO: this failed in mettalog
+            (make-func-helper $functor (- $arity-left 1) $accum-new)
+        ) 
+    )
+)
+!(make-func f 3)
+
+; (= (K $x) )
+
+
+
+;; for mettalog
+!(if (== (collapse (match &self (= (noreduce-eq $x $y) $t) True)) ())
+    (trace! (added) (add-atom &self 
+        (= (noreduce-eq $x $y) (== (quote $x) (quote $y)))
+    ))
+    ()
 )
