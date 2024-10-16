@@ -118,17 +118,13 @@
     ) (charsToString $chars-ab))
 )
 
-;; TODO: strongly typed list of strings?
-
-;; how to avoid accidental reduction when building atom?
-
-;; make-curry up to min-args max-args
-;; (K ...) 
+;; make a variable from number
 (: make-var (-> Number String))
 (= (make-var $id)
     (parse (string-concat "$" (repr $id)))
 )
 
+;; make a function with $arity parameters
 (: make-func (-> Symbol Number Expression))
 (= (make-func $functor $arity)
     (make-func-helper $functor $arity ())
@@ -138,20 +134,38 @@
 (= (make-func-helper $functor $arity-left $accum)
     (if (== $arity-left 0)
         (cons-atom $functor $accum)
-        (let $accum-new (cons-atom (make-var $arity-left) $accum) ;; TODO: this failed in mettalog
-            (make-func-helper $functor (- $arity-left 1) $accum-new)
-        ) 
+        (let* (
+            ($var (make-var $arity-left))
+            ($accum-new (cons-atom $var $accum))
+        ) (make-func-helper $functor (- $arity-left 1) $accum-new)) 
     )
 )
-!(make-func f 3)
 
-; (= (K $x) )
 
+;; TODO: needs more testing, is this approach sound?
+;; ((f $1 $2) $3) --> (f $1 $2 $3), Eat up arguments up to a certain amount
+;; variable names range from $1 --> $<max-arity>
+;; this modifies space
+(= (make-uncurry! $space $functor $min-arity $max-arity $final-reduced)
+    (let* (
+        ($this-func (make-func $functor $min-arity))
+        ($next-arity (+ 1 $min-arity)))
+        (if (== $min-arity $max-arity)
+            (add-atom $space (= $this-func $final-reduced))
+            (let* (
+                ($next-func (make-func $functor $next-arity))
+                ($var-to-eat (make-var $next-arity))
+                ($eqn (= ($this-func $var-to-eat) $next-func))
+                (() (add-atom $space $eqn))
+            ) (make-uncurry! $space $functor $next-arity $max-arity $final-reduced))
+        )
+    )
+)
 
 
 ;; for mettalog
 !(if (== (collapse (match &self (= (noreduce-eq $x $y) $t) True)) ())
-    (trace! (added) (add-atom &self 
+    (trace! ("added noreduce-eq") (add-atom &self 
         (= (noreduce-eq $x $y) (== (quote $x) (quote $y)))
     ))
     ()
