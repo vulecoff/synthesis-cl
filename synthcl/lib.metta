@@ -146,19 +146,18 @@
 ;; ((f $1 $2) $3) --> (f $1 $2 $3), Eat up arguments up to a certain amount
 ;; variable names range from $1 --> $<max-arity>
 ;; this modifies space
-(= (make-uncurry! $space $functor $min-arity $max-arity $final-reduced)
-    (let* (
-        ($this-func (make-func $functor $min-arity))
-        ($next-arity (+ 1 $min-arity)))
-        (if (== $min-arity $max-arity)
-            (add-atom $space (= $this-func $final-reduced))
-            (let* (
-                ($next-func (make-func $functor $next-arity))
-                ($var-to-eat (make-var $next-arity))
-                ($eqn (= ($this-func $var-to-eat) $next-func))
-                (() (add-atom $space $eqn))
-            ) (make-uncurry! $space $functor $next-arity $max-arity $final-reduced))
-        )
+(: make-uncurry! (-> Grounded Symbol Number Number (->)))
+(= (make-uncurry! $space $functor $min-arity $max-arity)
+    (if (== $min-arity $max-arity)
+        (empty)
+        (let* (
+            ($this-func (make-func $functor $min-arity))
+            ($next-arity (+ 1 $min-arity))
+            ($next-func (make-func $functor $next-arity))
+            ($var-to-eat (make-var $next-arity))
+            ($eqn (= ($this-func $var-to-eat) $next-func))
+            (() (add-atom $space $eqn))
+        ) (make-uncurry! $space $functor $next-arity $max-arity))
     )
 )
 

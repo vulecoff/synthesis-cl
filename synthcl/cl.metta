@@ -6,11 +6,13 @@
 (: S (-> Atom Atom Atom))
 (: S (-> Atom Atom))
 (= (K $x $y) $x)
-(= ((K $x) $y) (K $x $y))
+; (= ((K $x) $y) (K $x $y))
 (= (S $x $y $z) ( ($x $z) ($y $z)))
-(= ((S $x) $y) (S $x $y))
-(= ((S $x $y) $z) (S $x $y $z))
+; (= ((S $x) $y) (S $x $y))
+; (= ((S $x $y) $z) (S $x $y $z))
 
+!(make-uncurry! &self K 1 2)
+!(make-uncurry! &self S 1 3)
 
 (is true (K K))
 (is false K)
