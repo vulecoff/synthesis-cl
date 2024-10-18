@@ -1,3 +1,6 @@
+;; Caution: avoid using dynamic-arity atom as list, as it will be expensive. Used Cons cell instead
+
+
 (: length-atom (-> Expression Number))
 (= (length-atom $expr) 
     (if (noreduce-eq $expr ())
@@ -5,6 +8,21 @@
         (let $rest (cdr-atom $expr)
         (+ 1 (length-atom $rest))
         )
+    )
+)
+
+(: index-atom (-> Expression Number Atom))
+(= (index-atom $expr $idx)
+    (if (or (< $idx 0) 
+            (and (noreduce-eq $expr ()) (>= $idx 0)))
+        (Error $expr "Index out of range")
+        (let 
+            ($head $rest) (decons-atom $expr)
+            (if (== $idx 0)
+                $head
+                (index-atom $rest (- $idx 1))
+            )
+        )    
     )
 )
 
@@ -168,4 +186,13 @@
         (= (noreduce-eq $x $y) (== (quote $x) (quote $y)))
     ))
     ()
+)
+
+!(if (== (>= 2 1) True)
+    ()
+    (trace! ("add greater or equal sign")
+        (add-atom &self 
+            (= (>= $x $y) (not (< $x $y)))
+        )
+    )
 )
